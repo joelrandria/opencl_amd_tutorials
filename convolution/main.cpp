@@ -54,6 +54,8 @@ int filterWidths[FILTER_WIDTH_COUNT] = {2, 4, 8, 16, 32};
 // Host buffers
 /////////////////////////////////////////////////////////////////
 
+void InitFilterHostBuffer(int width);
+
 void InitHostBuffers()
 {
   hostBuffers.pInput  = NULL;
@@ -79,6 +81,8 @@ void InitHostBuffers()
   {
     hostBuffers.pInput[i] = float(rand());
   }
+
+  InitFilterHostBuffer(params.nFilterWidth);
 }
 void InitFilterHostBuffer(int width)
 {
