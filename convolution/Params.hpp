@@ -13,20 +13,20 @@
 
 struct paramStruct
 {
-  int nWidth;         //Output image width
-  int nHeight;        //Output image height
-  int nInWidth;       //Input  image width
-  int nInHeight;      //Input  image height
-  int nFilterWidth;   //Filter size is nFilterWidth X nFilterWidth
-  int nIterations;    //Run timing loop for nIterations
+  int nWidth;		// Output image width
+  int nHeight;		// Output image height
+  int nInWidth;		// Input  image width
+  int nInHeight;	// Input  image height
+  int nFilterWidth;	// Filter size is nFilterWidth X nFilterWidth
+  int nIterations;	// Run timing loop for nIterations
 
-  //Test CPU performance with 1,4,8 etc. OpenMP threads
+  int nMode;		// Execution mode (-1=All, 0=CPU, 1=GPU)
+
+  // Test CPU performance with 1,4,8 etc. OpenMP threads
   std::vector<int> ompThreads;
-  int nOmpRuns;		//ompThreads.size()
+  int nOmpRuns;		// ompThreads.size()
 
-  bool bCPUTiming;	//Time CPU performance
-
-  bool benchmark;	//Benchmark mode
+  bool benchmark;	// Benchmark mode
 
 } params;
 
@@ -35,12 +35,12 @@ void ParseCommandLine(int argc, char* argv[]);
 
 void InitParams(int argc, char* argv[])
 {
-  params.nWidth = 1024*8;
-  params.nHeight = 1024*8;
-  params.nFilterWidth = 17;
-  params.nIterations = 3;
+  params.nWidth = 1024;
+  params.nHeight = 1024;
+  params.nFilterWidth = 3;
+  params.nIterations = 1;
 
-  params.bCPUTiming = true;
+  params.nMode = -1;
 
   params.benchmark = false;
 
@@ -61,14 +61,15 @@ void ParseCommandLine(int argc, char* argv[])
   {
     switch (argv[i][1])
     {
+    case 'm':
+      if (++i < argc)
+	sscanf(argv[i], "%d", &params.nMode);
+      break;
     case 'p':
       CLHelpers::printAllDeviceInfo();
       exit(EXIT_SUCCESS);
     case 'b':
       params.benchmark = true;
-      break;
-    case 'c':
-      params.bCPUTiming = false;
       break;
     case 'f':
       if (++i < argc)
@@ -131,15 +132,15 @@ void ParseCommandLine(int argc, char* argv[])
 
 void Usage(char *name)
 {
-  printf("\tUsage: %s [-h] [-c] [-f <int>] [-i <int>] [-x <int>] [-y <int>]\n", name);
-  printf("   -p	      Print available OpenCL platforms.\n");
-  printf("   -h       Print this help menu.\n");
-  printf("   -c       Supress CPU timing run.\n");
-  printf("   -b       Benchmark mode.\n");
-  printf("   -f <int> Sets the filter width.\n");
-  printf("   -i <int> Number of iterations.\n");
-  printf("   -x <int> Sets the image width.\n");
-  printf("   -y <int> Sets the image height.\n");
+  printf("\tUsage: %s [-h] [-m <int>] [-p] [-b] [-f <int>] [-i <int>] [-x <int>] [-y <int>]\n", name);
+  printf("   -h		Print this help menu.\n");
+  printf("   -m <int>	Mode (0=CPU, 1=GPU).\n");
+  printf("   -p		Print available OpenCL platforms.\n");
+  printf("   -b		Benchmark mode.\n");
+  printf("   -f <int>	Sets the filter width.\n");
+  printf("   -i <int>	Number of iterations.\n");
+  printf("   -x <int>	Sets the image width.\n");
+  printf("   -y <int>	Sets the image height.\n");
 }
 
 

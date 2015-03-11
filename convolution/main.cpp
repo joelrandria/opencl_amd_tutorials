@@ -98,10 +98,18 @@ void PrintInfo()
   cout << "Filter Size:    " << params.nFilterWidth << " x "
        << params.nFilterWidth << endl;
   cout << "Iterations:     " << params.nIterations << endl;
-  cout << "CPU Timing:     " << (params.bCPUTiming ? "True":"False") << endl;
+
+  cout << "Mode:           ";
+  switch (params.nMode)
+  {
+  case -1: cout << "All device" << endl; break;
+  case 0: cout << "CPU" << endl; break;
+  case 1: cout << "GPU" << endl; break;
+  }
+
   cout << "Testing:        ";
 
-  if (params.bCPUTiming)
+  if (params.nMode < 1)
     for (int run = 0; run < params.nOmpRuns; run++)
       cout << "CPU (" << params.ompThreads[run] << "-threads) , ";
 
@@ -110,7 +118,7 @@ void PrintInfo()
 
 void PrintCPUTime(int run)
 {
-  if (params.bCPUTiming)
+  if (params.nMode < 1)
     cout << "CPU (" << params.ompThreads[run] << "-threads): " << timers.dCpuTime << endl;
 }
 
@@ -169,14 +177,33 @@ void Convolve(float * pInput, float * pFilter, float * pOutput,
   } //for (int yOut = 0...
 }
 
-void RunCPU(int run)
+void RunCPU(int ompThreadCount)
 {
-  if (params.bCPUTiming)
-  {
-    cout << "\n********    Starting CPU (" << params.ompThreads[run] << "-threads) run    ********" << endl;
+  cout << "\n********    Starting CPU (" << ompThreadCount << "-threads) run    ********" << endl;
 
-    if (!params.benchmark)
+  if (!params.benchmark)
+  {
+    timers.counter.Reset();
+    timers.counter.Start();
+
+    for (int i = 0; i < params.nIterations; i++)
+      Convolve(hostBuffers.pInput, hostBuffers.pFilter, hostBuffers.pOutputCPU,
+	       params.nInWidth,
+	       params.nWidth, params.nHeight,
+	       params.nFilterWidth,
+	       ompThreadCount);
+
+    timers.counter.Stop();
+    timers.dCpuTime = timers.counter.GetElapsedTime()/double(params.nIterations);
+
+    PrintCPUTime(ompThreadCount);
+  }
+  else
+  {
+    for (int j = 0; j < BENCHMARK_FILTER_COUNT; ++j)
     {
+      InitFilterHostBuffer(benchmarkFilterWidths[j]);
+
       timers.counter.Reset();
       timers.counter.Start();
 
@@ -184,37 +211,15 @@ void RunCPU(int run)
 	Convolve(hostBuffers.pInput, hostBuffers.pFilter, hostBuffers.pOutputCPU,
 		 params.nInWidth,
 		 params.nWidth, params.nHeight,
-		 params.nFilterWidth,
-		 params.ompThreads[run]);
+		 benchmarkFilterWidths[j],
+		 ompThreadCount);
 
       timers.counter.Stop();
       timers.dCpuTime = timers.counter.GetElapsedTime()/double(params.nIterations);
 
-      PrintCPUTime(run);
-    }
-    else
-    {
-      for (int j = 0; j < BENCHMARK_FILTER_COUNT; ++j)
-      {
-	InitFilterHostBuffer(benchmarkFilterWidths[j]);
+      stats.cpu4Threads.add(benchmarkFilterWidths[j], timers.dCpuTime);
 
-	timers.counter.Reset();
-	timers.counter.Start();
-
-	for (int i = 0; i < params.nIterations; i++)
-	  Convolve(hostBuffers.pInput, hostBuffers.pFilter, hostBuffers.pOutputCPU,
-		   params.nInWidth,
-		   params.nWidth, params.nHeight,
-		   benchmarkFilterWidths[j],
-		   params.ompThreads[run]);
-
-	timers.counter.Stop();
-	timers.dCpuTime = timers.counter.GetElapsedTime()/double(params.nIterations);
-
-	stats.cpu4Threads.add(benchmarkFilterWidths[j], timers.dCpuTime);
-
-	cout << "Filter size = " << benchmarkFilterWidths[j] << ": CPU time = " << timers.dCpuTime << "s" << endl;
-      }
+      cout << "Filter size = " << benchmarkFilterWidths[j] << ": CPU time = " << timers.dCpuTime << "s" << endl;
     }
   }
 }
@@ -274,10 +279,18 @@ int main(int argc, char * argv[])
     InitHostBuffers();
     InitStatFiles();
 
-    for (int run = 0; run < params.nOmpRuns; run++)
+    switch (params.nMode)
     {
-      ClearBuffer(hostBuffers.pOutputCPU);
-      RunCPU(run);
+    case -1:
+      RunCPU(4);
+      RunGPU();
+      break;
+    case 0:
+      RunCPU(4);
+      break;
+    case 1:
+      RunGPU();
+      break;
     }
 
     ReleaseHostBuffers();
