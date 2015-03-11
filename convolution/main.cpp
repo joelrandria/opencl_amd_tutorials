@@ -1,6 +1,5 @@
-#include "Timer.h"
+#include "Convolution.h"
 #include "Params.h"
-#include "StatFile.h"
 
 #include <omp.h>
 #include <string>
@@ -14,47 +13,8 @@ using std::setw;
 using std::string;
 
 /////////////////////////////////////////////////////////////////
-// Macros
-/////////////////////////////////////////////////////////////////
-
-#define FREE(ptr, free_val)			\
-  if (ptr != free_val)				\
-  {						\
-    free(ptr);					\
-    ptr = free_val;				\
-  }
-
-/////////////////////////////////////////////////////////////////
-// Globals
-/////////////////////////////////////////////////////////////////
-
-struct hostBufferStruct
-{
-  float * pInput;
-  float * pFilter;
-  float * pOutputCPU;
-} hostBuffers;
-
-struct timerStruct
-{
-  double dCpuTime;
-  CPerfCounter counter;
-} timers;
-
-struct statFileStruct
-{
-  StatFile cpu4Threads;
-} stats;
-
-#define FILTER_WIDTH_COUNT 5
-
-int filterWidths[FILTER_WIDTH_COUNT] = {2, 4, 8, 16, 32};
-
-/////////////////////////////////////////////////////////////////
 // Host buffers
 /////////////////////////////////////////////////////////////////
-
-void InitFilterHostBuffer(int width);
 
 void InitHostBuffers()
 {
@@ -229,9 +189,9 @@ void RunCPU(int run)
     }
     else
     {
-      for (int j = 0; j < FILTER_WIDTH_COUNT; ++j)
+      for (int j = 0; j < BENCHMARK_FILTER_COUNT; ++j)
       {
-	InitFilterHostBuffer(filterWidths[j]);
+	InitFilterHostBuffer(benchmarkFilterWidths[j]);
 
 	timers.counter.Reset();
 	timers.counter.Start();
@@ -240,15 +200,15 @@ void RunCPU(int run)
 	  Convolve(hostBuffers.pInput, hostBuffers.pFilter, hostBuffers.pOutputCPU,
 		   params.nInWidth,
 		   params.nWidth, params.nHeight,
-		   filterWidths[j],
+		   benchmarkFilterWidths[j],
 		   params.ompThreads[run]);
 
 	timers.counter.Stop();
 	timers.dCpuTime = timers.counter.GetElapsedTime()/double(params.nIterations);
 
-	stats.cpu4Threads.add(filterWidths[j], timers.dCpuTime);
+	stats.cpu4Threads.add(benchmarkFilterWidths[j], timers.dCpuTime);
 
-	cout << "Filter size = " << filterWidths[j] << ": CPU time = " << timers.dCpuTime << "s" << endl;
+	cout << "Filter size = " << benchmarkFilterWidths[j] << ": CPU time = " << timers.dCpuTime << "s" << endl;
       }
     }
   }
