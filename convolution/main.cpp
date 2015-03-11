@@ -1,5 +1,10 @@
-#include "Convolution.h"
-#include "Params.h"
+#define __CL_ENABLE_EXCEPTIONS
+
+#include "Convolution.hpp"
+#include "Params.hpp"
+
+#include "util.hpp"
+#include <CL/cl.hpp>
 
 #include <omp.h>
 #include <string>
@@ -212,6 +217,47 @@ void RunCPU(int run)
       }
     }
   }
+}
+
+/////////////////////////////////////////////////////////////////
+// Convolution on GPU
+/////////////////////////////////////////////////////////////////
+
+#define CONVOLUTION_CL_FILENAME "convolution.cl"
+
+void RunGPU()
+{
+  std::vector<cl::Device> devices;
+  const int targetDevice = 1;
+
+  cl::Context context;
+  cl::CommandQueue queue;
+  cl::Program program;
+
+  CLHelpers::getAllDevices(devices);
+
+  context = cl::Context(devices[targetDevice]);
+  queue = cl::CommandQueue(context, devices[targetDevice]);
+
+  try
+  {
+    program = cl::Program(context, util::loadProgram(CONVOLUTION_CL_FILENAME));
+    program.build();
+  }
+  catch (cl::Error e)
+  {
+    std::string log;
+
+    program.getBuildInfo(devices[targetDevice], CL_PROGRAM_BUILD_LOG, &log);
+
+    fprintf(stderr, "Exception: %s\r\n", e.what());
+    fprintf(stderr, "\r\n%s\r\n", log.c_str());
+
+    exit(EXIT_FAILURE);
+  }
+
+  
+
 }
 
 /////////////////////////////////////////////////////////////////

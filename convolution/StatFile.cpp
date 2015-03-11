@@ -1,4 +1,4 @@
-#include "StatFile.h"
+#include "StatFile.hpp"
 
 #include <cstdio>
 #include <sys/stat.h>

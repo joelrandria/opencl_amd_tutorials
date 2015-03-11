@@ -1,6 +1,8 @@
 #ifndef PARAMS_H_
 #define PARAMS_H_
 
+#include "CLHelpers.hpp"
+
 #include <vector>
 #include <iostream>
 
@@ -59,6 +61,9 @@ void ParseCommandLine(int argc, char* argv[])
   {
     switch (argv[i][1])
     {
+    case 'p':
+      CLHelpers::printAllDeviceInfo();
+      exit(EXIT_SUCCESS);
     case 'b':
       params.benchmark = true;
       break;
@@ -127,6 +132,7 @@ void ParseCommandLine(int argc, char* argv[])
 void Usage(char *name)
 {
   printf("\tUsage: %s [-h] [-c] [-f <int>] [-i <int>] [-x <int>] [-y <int>]\n", name);
+  printf("   -p	      Print available OpenCL platforms.\n");
   printf("   -h       Print this help menu.\n");
   printf("   -c       Supress CPU timing run.\n");
   printf("   -b       Benchmark mode.\n");
